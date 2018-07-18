@@ -17,7 +17,7 @@ import javax.lang.model.util.ElementFilter
 class ActionAnnotationProcessor : AbstractProcessor() {
     private lateinit var mKaptKotlinGenerated: File
 
-    override fun getSupportedAnnotationTypes() = setOf(ACTION_ANNOTATION_CLASS)
+    override fun getSupportedAnnotationTypes() = setOf(ACTION_ANNOTATION_CLASS, REACTION_ANNOTATION_CLASS)
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
@@ -25,31 +25,38 @@ class ActionAnnotationProcessor : AbstractProcessor() {
     }
 
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
-        val annotation = annotations.firstOrNull { it.toString() == ACTION_ANNOTATION_CLASS }
+        val actionAnnotation = annotations.firstOrNull { it.toString() == ACTION_ANNOTATION_CLASS }
                 ?: return false
-        val actionsClass = TypeSpec.classBuilder(ACTION_METHODS)
+        val reactionAnnotation = annotations.firstOrNull { it.toString() == REACTION_ANNOTATION_CLASS }
+                ?: return false
+        generateClass(roundEnv.getElementsAnnotatedWith(actionAnnotation), ACTION_METHODS, FLUXX_ACTION_CLASS)
+        generateClass(roundEnv.getElementsAnnotatedWith(reactionAnnotation), REACTION_METHODS, FLUXX_REACTION_CLASS)
+        return true
+    }
+
+    private fun generateClass(elementsFromAnnotation: MutableSet<out Element>, className: String, reqFluxxClass: String) {
+        val typeClass = TypeSpec.classBuilder(className)
         var hasConstructor = false
-        roundEnv.getElementsAnnotatedWith(annotation).map { element ->
+        elementsFromAnnotation.map { element ->
             val constructor = ArrayList<String>()
             getConstructor(element.enclosingElement).parameters.map {
                 constructor.add("mAny as ${processingEnv.elementUtils.getTypeElement(it.asType().toString())}")
             }
             val methodName = element.simpleName.toString()
-            actionsClass.addFunction(FunSpec.builder("_$methodName")
+            typeClass.addFunction(FunSpec.builder("_$methodName")
                     .addStatement(processingEnv.elementUtils.getPackageOf(element).toString() +
                             ".${element.enclosingElement.simpleName}(${constructor.joinToString()})" +
-                            ".$methodName($FLUXX_ACTION_CLASS.type(\"action\") as $FLUXX_ACTION_CLASS)")
+                            ".$methodName($reqFluxxClass.type(\"default\") as $reqFluxxClass)")
                     .build())
             hasConstructor = constructor.isNotEmpty()
         }
         if (hasConstructor) {
-            actionsClass.addProperty(PropertySpec.builder("mAny", Any::class, KModifier.PRIVATE).initializer("Any()").build())
+            typeClass.addProperty(PropertySpec.builder("mAny", Any::class, KModifier.PRIVATE).initializer("Any()").build())
         }
-        FileSpec.builder(FLUXX_PACKAGE_NAME, ACTION_METHODS)
-                .addType(actionsClass.build())
+        FileSpec.builder(FLUXX_PACKAGE_NAME, className)
+                .addType(typeClass.build())
                 .build()
                 .writeTo(mKaptKotlinGenerated.apply { mkdirs() })
-        return true
     }
 
     private fun getConstructor(element: Element): ExecutableElement {
@@ -75,7 +82,10 @@ class ActionAnnotationProcessor : AbstractProcessor() {
     companion object {
         const val FLUXX_PACKAGE_NAME = "com.ptmr3.fluxx"
         const val FLUXX_ACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxAction"
+        const val FLUXX_REACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxReaction"
         const val ACTION_ANNOTATION_CLASS = "$FLUXX_PACKAGE_NAME.annotation.Action"
         const val ACTION_METHODS = "ActionMethods"
+        const val REACTION_ANNOTATION_CLASS = "$FLUXX_PACKAGE_NAME.annotation.Reaction"
+        const val REACTION_METHODS = "ReactionMethods"
     }
 }

@@ -34,26 +34,31 @@ class ActionAnnotationProcessor : AbstractProcessor() {
         return true
     }
 
-    private fun generateClass(elementsFromAnnotation: MutableSet<out Element>, className: String, reqFluxxClass: String) {
-        val typeClass = TypeSpec.classBuilder(className)
+    private fun generateClass(elementsFromAnnotation: MutableSet<out Element>, generatedClassName: String, reqFluxxClass: String) {
+        val typeClass = TypeSpec.classBuilder(generatedClassName)
         var hasConstructor = false
         elementsFromAnnotation.map { element ->
             val constructor = ArrayList<String>()
             getConstructor(element.enclosingElement).parameters.map {
                 constructor.add("mAny as ${processingEnv.elementUtils.getTypeElement(it.asType().toString())}")
             }
+            val className = element.enclosingElement.simpleName.toString()
             val methodName = element.simpleName.toString()
-            typeClass.addFunction(FunSpec.builder("_$methodName")
+            var methodParam: String? = null
+            if ((element as ExecutableElement).parameters.isNotEmpty()) {
+                methodParam = "$reqFluxxClass.type(\"default\") as $reqFluxxClass"
+            }
+            typeClass.addFunction(FunSpec.builder("${className}_$methodName")
                     .addStatement(processingEnv.elementUtils.getPackageOf(element).toString() +
-                            ".${element.enclosingElement.simpleName}(${constructor.joinToString()})" +
-                            ".$methodName($reqFluxxClass.type(\"default\") as $reqFluxxClass)")
+                            ".$className(${constructor.joinToString()})" +
+                            ".$methodName(${methodParam?.let { it } ?: kotlin.run { "" }})")
                     .build())
             hasConstructor = constructor.isNotEmpty()
         }
         if (hasConstructor) {
             typeClass.addProperty(PropertySpec.builder("mAny", Any::class, KModifier.PRIVATE).initializer("Any()").build())
         }
-        FileSpec.builder(FLUXX_PACKAGE_NAME, className)
+        FileSpec.builder(FLUXX_PACKAGE_NAME, generatedClassName)
                 .addType(typeClass.build())
                 .build()
                 .writeTo(mKaptKotlinGenerated.apply { mkdirs() })

@@ -46,7 +46,7 @@ class ActionAnnotationProcessor : AbstractProcessor() {
             val methodName = element.simpleName.toString()
             var methodParam: String? = null
             if ((element as ExecutableElement).parameters.isNotEmpty()) {
-                methodParam = "$reqFluxxClass.type(\"default\") as $reqFluxxClass"
+                methodParam = "$reqFluxxClass.type(\"default\").build()"
             }
             typeClass.addFunction(FunSpec.builder("${className}_$methodName")
                     .addStatement(processingEnv.elementUtils.getPackageOf(element).toString() +

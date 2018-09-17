@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.51'
+    ext.kotlin_version = '1.2.70'
     repositories {
         google()
         jcenter()
@@ -33,6 +33,3 @@ dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     kapt 'com.google.auto.service:auto-service:1.0-rc2'
 }
-
-sourceCompatibility = "1.7"
-targetCompatibility = "1.7"

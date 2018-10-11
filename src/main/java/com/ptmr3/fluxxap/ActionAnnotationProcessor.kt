@@ -21,7 +21,7 @@ class ActionAnnotationProcessor : AbstractProcessor() {
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
-        mKaptKotlinGenerated = File(processingEnv.options["kapt.kotlin.generated"]?.replace("kaptKotlin", "kapt"))
+        mKaptKotlinGenerated = File(processingEnv.options[KOTLIN_GENERATED]?.replace(KAPT_KOTLIN, KAPT))
     }
 
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
@@ -46,7 +46,7 @@ class ActionAnnotationProcessor : AbstractProcessor() {
             val methodName = element.simpleName.toString()
             var methodParam: String? = null
             if ((element as ExecutableElement).parameters.isNotEmpty()) {
-                methodParam = "$reqFluxxClass.type(\"default\").build()"
+                methodParam = "$reqFluxxClass::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance()"
             }
             typeClass.addFunction(FunSpec.builder("${className}_$methodName")
                     .addStatement(processingEnv.elementUtils.getPackageOf(element).toString() +
@@ -86,10 +86,13 @@ class ActionAnnotationProcessor : AbstractProcessor() {
 
     companion object {
         const val FLUXX_PACKAGE_NAME = "com.ptmr3.fluxx"
-        const val FLUXX_ACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxAction"
-        const val FLUXX_REACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxReaction"
         const val ACTION_ANNOTATION_CLASS = "$FLUXX_PACKAGE_NAME.annotation.Action"
         const val ACTION_METHODS = "ActionMethods"
+        const val FLUXX_ACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxAction"
+        const val FLUXX_REACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxReaction"
+        const val KAPT = "kapt"
+        const val KAPT_KOTLIN = "kaptKotlin"
+        const val KOTLIN_GENERATED = "kapt.kotlin.generated"
         const val REACTION_ANNOTATION_CLASS = "$FLUXX_PACKAGE_NAME.annotation.Reaction"
         const val REACTION_METHODS = "ReactionMethods"
     }

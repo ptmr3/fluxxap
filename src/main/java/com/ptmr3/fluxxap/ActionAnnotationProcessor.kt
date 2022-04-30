@@ -29,8 +29,11 @@ class ActionAnnotationProcessor : AbstractProcessor() {
                 ?: return false
         val reactionAnnotation = annotations.firstOrNull { it.toString() == REACTION_ANNOTATION_CLASS }
                 ?: return false
+        val failureReactionAnnotation = annotations.firstOrNull { it.toString() == FAILURE_REACTION_ANNOTATION_CLASS }
+            ?: return false
         generateClass(roundEnv.getElementsAnnotatedWith(actionAnnotation), ACTION_METHODS, FLUXX_ACTION_CLASS)
         generateClass(roundEnv.getElementsAnnotatedWith(reactionAnnotation), REACTION_METHODS, FLUXX_REACTION_CLASS)
+        generateClass(roundEnv.getElementsAnnotatedWith(failureReactionAnnotation), FAILURE_REACTION_METHODS, FLUXX_FAILURE_REACTION_CLASS)
         return true
     }
 
@@ -51,7 +54,7 @@ class ActionAnnotationProcessor : AbstractProcessor() {
             typeClass.addFunction(FunSpec.builder("${className}_$methodName")
                     .addStatement(processingEnv.elementUtils.getPackageOf(element).toString() +
                             ".$className(${constructor.joinToString()})" +
-                            ".$methodName(${methodParam?.let { it } ?: kotlin.run { "" }})")
+                            ".$methodName(${methodParam ?: kotlin.run { "" }})")
                     .build())
             hasConstructor = constructor.isNotEmpty()
         }
@@ -88,12 +91,15 @@ class ActionAnnotationProcessor : AbstractProcessor() {
         const val FLUXX_PACKAGE_NAME = "com.ptmr3.fluxx"
         const val ACTION_ANNOTATION_CLASS = "$FLUXX_PACKAGE_NAME.annotation.Action"
         const val ACTION_METHODS = "ActionMethods"
-        const val FLUXX_ACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxAction"
-        const val FLUXX_REACTION_CLASS = "$FLUXX_PACKAGE_NAME.FluxxReaction"
+        const val FAILURE_REACTION_ANNOTATION_CLASS = "$FLUXX_PACKAGE_NAME.annotation.FailureReaction"
+        const val FLUXX_ACTION_CLASS = "$FLUXX_PACKAGE_NAME.Action"
+        const val FLUXX_REACTION_CLASS = "$FLUXX_PACKAGE_NAME.Reaction"
+        const val FLUXX_FAILURE_REACTION_CLASS = "$FLUXX_PACKAGE_NAME.FailureReaction"
         const val KAPT = "kapt"
         const val KAPT_KOTLIN = "kaptKotlin"
         const val KOTLIN_GENERATED = "kapt.kotlin.generated"
         const val REACTION_ANNOTATION_CLASS = "$FLUXX_PACKAGE_NAME.annotation.Reaction"
         const val REACTION_METHODS = "ReactionMethods"
+        const val FAILURE_REACTION_METHODS = "FailureReactionMethods"
     }
 }
